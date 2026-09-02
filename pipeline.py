@@ -70,6 +70,14 @@ def main() -> None:
     p.add_argument("--crf", type=int, default=22,
                    help="x264 CRF for re-encoded segments (18=high quality, 28=smaller)")
 
+    # Step 5 — mux / subtitle
+    p.add_argument("--subtitle-mode", default="hard", choices=["hard", "soft", "both"],
+                   help="hard=burn into frames (default, always visible); soft=mov_text track; both=burn+track")
+    p.add_argument("--font-file",     default=None,
+                   help="Override subtitle font path (auto-detected per language if omitted)")
+    p.add_argument("--font-size",     type=int, default=28,
+                   help="Subtitle font size in pixels (default: 28)")
+
     args = p.parse_args()
 
     # Resolve paths
@@ -152,10 +160,13 @@ def main() -> None:
     result = assemble(video, segs, mp3s, assembled_dir, args.crf)
 
     # ── Step 5: Mux ───────────────────────────────────────────────────────────
-    _step("Step 5/5 — Mux final MP4")
+    _step(f"Step 5/5 — Mux final MP4  (subtitle-mode={args.subtitle_mode})")
     from steps.mux import mux
-    title = {"ja": "日本語", "zh": "中文", "ko": "한국어", "en": "English"}.get(args.lang, args.lang)
-    mux(result["video"], result["audio"], result["srt"], out, args.lang, title)
+    title = {"ja": "日本語", "zh": "中文", "ko": "한국어", "en": "English",
+             "de": "Deutsch", "fr": "Français", "es": "Español", "ar": "العربية"}.get(args.lang, args.lang)
+    mux(result["video"], result["audio"], result["srt"], out,
+        args.lang, title, args.subtitle_mode,
+        args.font_file, args.font_size, args.crf)
 
     size_mb = out.stat().st_size / 1024 ** 2
     print(f"\n{'═'*60}")
