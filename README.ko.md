@@ -7,7 +7,7 @@
 모든 MP4 동영상을 다른 언어로 더빙합니다.
 
 - **ASR 음성 인식** — faster-whisper（완전 오프라인 동작）
-- **LLM 번역** — Claude 또는 GPT 기반의 비즈니스 격식체 번역
+- **Agent 번역** — 코딩 Agent（Claude Code / Codex / IBM Bob）의 내장 기능 사용, 비즈니스 격식체, API Key 불필요
 - **신경망 TTS** — edge-tts（400개 이상의 음성, API Key 불필요）
 - **세그먼트별 프리즈 프레임 동기화** — TTS가 원본 세그먼트 시간 창을 초과하면 마지막 프레임에서 영상을 정지하여 연쇄 오프셋 방지
 - **소프트 자막** — `mov_text` 스트림（QuickTime / VLC / mpv에서 자유롭게 켜고 끌 수 있음）
@@ -20,8 +20,6 @@
 |------|------|----------|
 | Python | ≥ 3.10 | [python.org](https://www.python.org) |
 | ffmpeg + ffprobe | ≥ 5.0 | `brew install ffmpeg` / `apt install ffmpeg` |
-| ANTHROPIC_API_KEY | — | Claude 번역에 필요 |
-| OPENAI_API_KEY | — | GPT 번역에 필요（대안） |
 
 ---
 
@@ -40,15 +38,21 @@ bash install.sh
 ## 빠른 시작
 
 ```bash
-# API Key 설정
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# 한 명령으로 전체 파이프라인 실행
+# 1단계 — 음성 인식 + 번역 태스크 출력（API Key 불필요）
 .venv/bin/python3 pipeline.py \
   --video  /path/to/source.mp4 \
   --lang   ko \
-  --voice  ko-KR-SunHiNeural \
-  --out    /path/to/source_ko.mp4
+  --voice  ko-KR-SunHiNeural
+
+# 파이프라인이 일시 중지되고 전체 세그먼트와 번역 지침이 출력됩니다.
+# Agent（Claude Code / Codex / IBM Bob）가 번역하여 저장합니다：
+#   /path/to/<stem>_dub_work/transcript_ko.json
+
+# 2단계 — 번역 완료 후 재개
+.venv/bin/python3 pipeline.py \
+  --video      /path/to/source.mp4 \
+  --translated /path/to/<stem>_dub_work/transcript_ko.json \
+  --out        /path/to/source_ko.mp4
 ```
 
 출력 MP4에는 다음 스트림이 포함됩니다：
@@ -69,12 +73,12 @@ python3 steps/transcribe.py \
   --model  medium \
   --out    work/transcript_en.json
 
-# Step 2 — 번역（transcript_ko.json 생성）
+# Step 2 — 번역（태스크 출력；agent가 work/transcript_ko.json 작성）
 python3 steps/translate.py \
-  --input      work/transcript_en.json \
-  --lang       ko \
-  --translator claude \
-  --out        work/transcript_ko.json
+  --input  work/transcript_en.json \
+  --lang   ko \
+  --out    work/transcript_ko.json
+# → agent가 출력을 읽고 번역하여 work/transcript_ko.json 저장
 
 # Step 3 — TTS 합성（work/tts_segments/seg_*.mp3 생성）
 python3 steps/synthesize.py \
@@ -131,7 +135,7 @@ python3 pipeline.py --video source.mp4 \
 | `--voice` | `ja-JP-NanamiNeural` | edge-tts 음성 이름 |
 | `--rate` | `+15%` | 발화 속도；+15%는 전문 내레이터 페이스 |
 | `--whisper-model` | `medium` | `tiny`（빠름） ↔ `large-v3`（정확） |
-| `--translator` | `claude` | `claude` / `openai` / `none` |
+| `--translator` | `native` | `native`（agent 내장 번역） / `none`（소스 복사） |
 | `--style` | *(자동)* | 번역 어조 프롬프트 |
 | `--crf` | `22` | x264 품질（18=고화질, 28=소용량） |
 | `--work-dir` | `<stem>_dub_work/` | 중간 파일 저장 디렉토리 |
@@ -206,7 +210,7 @@ video_dub/
 ├── pipeline.py       전체 파이프라인 실행
 └── steps/
     ├── transcribe.py Step 1：faster-whisper ASR
-    ├── translate.py  Step 2：LLM 번역
+    ├── translate.py  Step 2：Agent 내장 번역（API Key 불필요）
     ├── synthesize.py Step 3：edge-tts TTS 합성
     ├── assemble.py   Step 4：세그먼트별 어셈블（핵심）
     └── mux.py        Step 5：최종 먹싱

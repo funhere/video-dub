@@ -7,7 +7,7 @@
 Synchronisiert beliebige MP4-Videos in eine andere Sprache. Funktionen:
 
 - **ASR-Transkription** — faster-whisper (vollständig offline)
-- **LLM-Übersetzung** — Claude oder GPT, formeller Businesston, prägnant
+- **Agent-Übersetzung** — integrierte Fähigkeit des Coding-Agents (Claude Code / Codex / IBM Bob), formeller Businesston, kein API-Schlüssel erforderlich
 - **Neuronale TTS** — edge-tts (über 400 Stimmen, kein API-Schlüssel erforderlich)
 - **Segmentweises Einfrieren** — Überschreitet die TTS-Audio das Zeitfenster eines Segments, wird das letzte Bild des Segments eingefroren, bis die Sprache abgeschlossen ist. Kein kaskadierender Versatz.
 - **Soft-Untertitel** — `mov_text`-Stream, in QuickTime / VLC / mpv ein- und ausschaltbar
@@ -20,8 +20,6 @@ Synchronisiert beliebige MP4-Videos in eine andere Sprache. Funktionen:
 |----------|---------|-------------|
 | Python | ≥ 3.10 | [python.org](https://www.python.org) |
 | ffmpeg + ffprobe | ≥ 5.0 | `brew install ffmpeg` / `apt install ffmpeg` |
-| ANTHROPIC_API_KEY | — | Für Claude-Übersetzung |
-| OPENAI_API_KEY | — | Für GPT-Übersetzung (Alternative) |
 
 ---
 
@@ -40,15 +38,21 @@ bash install.sh
 ## Schnellstart
 
 ```bash
-# API-Schlüssel setzen
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# Gesamte Pipeline mit einem Befehl ausführen
+# Phase 1 — Transkription + Übersetzungsaufgabe ausgeben (kein API-Schlüssel)
 .venv/bin/python3 pipeline.py \
   --video  /pfad/zum/original.mp4 \
   --lang   de \
-  --voice  de-DE-KatjaNeural \
-  --out    /pfad/zum/output_de.mp4
+  --voice  de-DE-KatjaNeural
+
+# Die Pipeline hält an und gibt alle Segmente mit Übersetzungsanweisungen aus.
+# Der Agent (Claude Code / Codex / IBM Bob) übersetzt und schreibt:
+#   /pfad/zum/<stem>_dub_work/transcript_de.json
+
+# Phase 2 — Nach der Übersetzung fortsetzen
+.venv/bin/python3 pipeline.py \
+  --video      /pfad/zum/original.mp4 \
+  --translated /pfad/zum/<stem>_dub_work/transcript_de.json \
+  --out        /pfad/zum/output_de.mp4
 ```
 
 Die Ausgabe-MP4 enthält:
@@ -69,12 +73,12 @@ python3 steps/transcribe.py \
   --model  medium \
   --out    work/transcript_en.json
 
-# Schritt 2 — Übersetzung (erzeugt transcript_de.json)
+# Schritt 2 — Übersetzung (gibt Aufgabe aus; Agent schreibt work/transcript_de.json)
 python3 steps/translate.py \
-  --input      work/transcript_en.json \
-  --lang       de \
-  --translator claude \
-  --out        work/transcript_de.json
+  --input  work/transcript_en.json \
+  --lang   de \
+  --out    work/transcript_de.json
+# → Agent liest Ausgabe, übersetzt und schreibt work/transcript_de.json
 
 # Schritt 3 — TTS-Synthese (erzeugt work/tts_segments/seg_*.mp3)
 python3 steps/synthesize.py \
@@ -131,7 +135,7 @@ python3 pipeline.py --video original.mp4 \
 | `--voice` | `ja-JP-NanamiNeural` | edge-tts Stimmenname |
 | `--rate` | `+15%` | Sprechgeschwindigkeit; +15% = professionelles Sprechtempo |
 | `--whisper-model` | `medium` | `tiny` (schnell) ↔ `large-v3` (präzise) |
-| `--translator` | `claude` | `claude` / `openai` / `none` |
+| `--translator` | `native` | `native` (Agent übersetzt intern) / `none` (Quelle kopieren) |
 | `--style` | *(auto)* | Ton-/Registerhinweis für den Übersetzungsprompt |
 | `--crf` | `22` | x264-Qualität (18=hohe Qualität, 28=kleine Datei) |
 | `--work-dir` | `<stem>_dub_work/` | Verzeichnis für Zwischendateien |
@@ -206,7 +210,7 @@ video_dub/
 ├── pipeline.py       Gesamtpipeline in einem Befehl
 └── steps/
     ├── transcribe.py Schritt 1: faster-whisper ASR
-    ├── translate.py  Schritt 2: LLM-Übersetzung
+    ├── translate.py  Schritt 2: Agent-Übersetzung (kein API-Schlüssel)
     ├── synthesize.py Schritt 3: edge-tts TTS
     ├── assemble.py   Schritt 4: Segmentweise Assemblierung (Kernalgorithmus)
     └── mux.py        Schritt 5: Finaler Mux

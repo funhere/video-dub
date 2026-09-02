@@ -9,7 +9,7 @@
 أداة لدبلجة أي فيديو بصيغة MP4 إلى لغة أخرى، تتضمن الميزات التالية:
 
 - **التفريغ الصوتي ASR** — faster-whisper (يعمل بالكامل بدون اتصال بالإنترنت)
-- **الترجمة بالذكاء الاصطناعي** — Claude أو GPT، بأسلوب رسمي احترافي وموجز
+- **ترجمة Agent** — يستخدم قدرات Agent البرمجي المدمجة (Claude Code / Codex / IBM Bob)، أسلوب رسمي احترافي، لا يتطلب مفتاح API
 - **تحويل النص إلى كلام TTS** — edge-tts (أكثر من 400 صوت، لا يتطلب مفتاح API)
 - **مزامنة تجميد الإطار لكل مقطع** — إذا تجاوزت مدة الصوت نافذة المقطع الأصلية، يتوقف الفيديو عند آخر إطار للمقطع حتى ينتهي الكلام، مما يمنع الانجراف المتسلسل
 - **ترجمة مضمّنة قابلة للتبديل** — تدفق `mov_text` يمكن تشغيله أو إيقافه في QuickTime / VLC / mpv
@@ -22,8 +22,6 @@
 |--------|---------|---------|
 | Python | ≥ 3.10 | [python.org](https://www.python.org) |
 | ffmpeg + ffprobe | ≥ 5.0 | `brew install ffmpeg` / `apt install ffmpeg` |
-| ANTHROPIC_API_KEY | — | لترجمة Claude |
-| OPENAI_API_KEY | — | لترجمة GPT (بديل) |
 
 ---
 
@@ -48,15 +46,21 @@ bash install.sh
 </div>
 
 ```bash
-# تعيين مفتاح API
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# تشغيل كامل الخط بأمر واحد
+# المرحلة الأولى — التفريغ الصوتي + عرض مهمة الترجمة (لا يتطلب مفتاح API)
 .venv/bin/python3 pipeline.py \
   --video  /مسار/المصدر.mp4 \
   --lang   ar \
-  --voice  ar-SA-ZariyahNeural \
-  --out    /مسار/المخرج_ar.mp4
+  --voice  ar-SA-ZariyahNeural
+
+# يتوقف الخط ويعرض جميع المقاطع مع تعليمات الترجمة.
+# يقوم Agent (Claude Code / Codex / IBM Bob) بالترجمة والكتابة إلى:
+#   /مسار/المصدر_dub_work/transcript_ar.json
+
+# المرحلة الثانية — الاستئناف بعد الترجمة
+.venv/bin/python3 pipeline.py \
+  --video      /مسار/المصدر.mp4 \
+  --translated /مسار/المصدر_dub_work/transcript_ar.json \
+  --out        /مسار/المخرج_ar.mp4
 ```
 
 <div dir="rtl">
@@ -81,12 +85,12 @@ python3 steps/transcribe.py \
   --model  medium \
   --out    work/transcript_en.json
 
-# الخطوة 2 — الترجمة (ينتج transcript_ar.json)
+# الخطوة 2 — الترجمة (يعرض المهمة؛ Agent يكتب work/transcript_ar.json)
 python3 steps/translate.py \
-  --input      work/transcript_en.json \
-  --lang       ar \
-  --translator claude \
-  --out        work/transcript_ar.json
+  --input  work/transcript_en.json \
+  --lang   ar \
+  --out    work/transcript_ar.json
+# → Agent يقرأ الإخراج ويترجم ويكتب work/transcript_ar.json
 
 # الخطوة 3 — توليد الصوت TTS (ينتج work/tts_segments/seg_*.mp3)
 python3 steps/synthesize.py \
@@ -149,7 +153,7 @@ python3 pipeline.py --video source.mp4 \
 | `--voice` | `ja-JP-NanamiNeural` | اسم صوت edge-tts |
 | `--rate` | `+15%` | سرعة الكلام؛ +15% = وتيرة المذيع المحترف |
 | `--whisper-model` | `medium` | `tiny` (سريع) ↔ `large-v3` (دقيق) |
-| `--translator` | `claude` | `claude` / `openai` / `none` |
+| `--translator` | `native` | `native` (ترجمة Agent المدمجة) / `none` (نسخ المصدر) |
 | `--style` | *(تلقائي)* | تلميح الأسلوب والمستوى لمطالبة الترجمة |
 | `--crf` | `22` | جودة x264 (18=جودة عالية، 28=ملف صغير) |
 | `--work-dir` | `<stem>_dub_work/` | مجلد الملفات الوسيطة |
@@ -231,7 +235,7 @@ video_dub/
 ├── pipeline.py       تشغيل كامل الخط بأمر واحد
 └── steps/
     ├── transcribe.py الخطوة 1: التفريغ الصوتي faster-whisper
-    ├── translate.py  الخطوة 2: الترجمة بالذكاء الاصطناعي
+    ├── translate.py  الخطوة 2: ترجمة Agent المدمجة (بدون مفتاح API)
     ├── synthesize.py الخطوة 3: توليد الصوت edge-tts
     ├── assemble.py   الخطوة 4: التجميع لكل مقطع (الخوارزمية الأساسية)
     └── mux.py        الخطوة 5: الدمج النهائي

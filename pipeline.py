@@ -56,9 +56,8 @@ def main() -> None:
     # Step 2 — translate
     p.add_argument("--lang",        default="ja",    help="Target language BCP-47 (ja/zh/ko/en/…)")
     p.add_argument("--style",       default=None,    help="Register/tone override for translation prompt")
-    p.add_argument("--translator",  default="claude", choices=["claude", "openai", "none"])
-    p.add_argument("--claude-model",default="claude-opus-4-5")
-    p.add_argument("--openai-model",default="gpt-4o")
+    p.add_argument("--translator",  default="native", choices=["native", "none"],
+                   help="native=agent translates inline (no API key); none=copy source unchanged")
 
     # Step 3 — synthesize
     p.add_argument("--voice", default="ja-JP-NanamiNeural",
@@ -116,17 +115,15 @@ def main() -> None:
     if not args.skip_translate:
         _step(f"Step 2/5 — Translate → {args.lang}  ({args.translator})")
         segs_en = json.loads(transcript_en.read_text(encoding="utf-8"))
-        if args.translator == "claude":
-            from steps.translate import translate_claude
-            translated = translate_claude(segs_en, args.lang, args.style, args.claude_model)
-        elif args.translator == "openai":
-            from steps.translate import translate_openai
-            translated = translate_openai(segs_en, args.lang, args.style, args.openai_model)
+        if args.translator == "native":
+            from steps.translate import translate_native
+            translate_native(segs_en, args.lang, args.style, transcript_lang)
+            # translate_native exits — agent translates, then resumes with --translated
         else:
             print("[pipeline] translator=none — copying source, fill translations manually")
             translated = segs_en
-        transcript_lang.write_text(json.dumps(translated, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"[pipeline] translated → {transcript_lang}")
+            transcript_lang.write_text(json.dumps(translated, ensure_ascii=False, indent=2), encoding="utf-8")
+            print(f"[pipeline] translated → {transcript_lang}")
     else:
         if not transcript_lang.exists():
             sys.exit(f"ERROR: --translated not found: {transcript_lang}")

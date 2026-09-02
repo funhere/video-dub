@@ -7,7 +7,7 @@
 将任意 MP4 视频配音为其他语言，功能包括：
 
 - **ASR 转写** — faster-whisper（完全离线运行）
-- **LLM 翻译** — Claude 或 GPT，商务语体，简洁凝练
+- **Agent 翻译** — 直接使用当前 coding agent（Claude Code / Codex / IBM Bob）的内置能力，商务语体，无需 API Key
 - **神经网络 TTS** — edge-tts（400+ 语音，无需 API Key）
 - **逐段冻结帧同步** — 若 TTS 时长超出原始片段窗口，视频停留在当前段最后一帧，避免级联偏移
 - **软字幕** — `mov_text` 流，可在 QuickTime / VLC / mpv 中自由开关
@@ -20,8 +20,6 @@
 |------|------|---------|
 | Python | ≥ 3.10 | [python.org](https://www.python.org) |
 | ffmpeg + ffprobe | ≥ 5.0 | `brew install ffmpeg` / `apt install ffmpeg` |
-| ANTHROPIC_API_KEY | — | Claude 翻译所需 |
-| OPENAI_API_KEY | — | GPT 翻译所需（可选替代） |
 
 ---
 
@@ -40,15 +38,21 @@ bash install.sh
 ## 快速开始
 
 ```bash
-# 设置 API Key
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# 一条命令完成全流程
+# 第一阶段 — 转写 + 打印翻译任务（无需 API Key）
 .venv/bin/python3 pipeline.py \
   --video  /path/to/source.mp4 \
   --lang   ja \
-  --voice  ja-JP-NanamiNeural \
-  --out    /path/to/source_ja.mp4
+  --voice  ja-JP-NanamiNeural
+
+# 流程暂停并打印所有片段及翻译说明
+# Agent（Claude Code / Codex / IBM Bob）翻译后写入：
+#   /path/to/<stem>_dub_work/transcript_ja.json
+
+# 第二阶段 — 翻译完成后恢复执行
+.venv/bin/python3 pipeline.py \
+  --video      /path/to/source.mp4 \
+  --translated /path/to/<stem>_dub_work/transcript_ja.json \
+  --out        /path/to/source_ja.mp4
 ```
 
 输出 MP4 包含：
@@ -69,12 +73,12 @@ python3 steps/transcribe.py \
   --model  medium \
   --out    work/transcript_en.json
 
-# Step 2 — 翻译（生成 transcript_ja.json）
+# Step 2 — 翻译（打印任务；agent 写入 work/transcript_ja.json）
 python3 steps/translate.py \
-  --input      work/transcript_en.json \
-  --lang       ja \
-  --translator claude \
-  --out        work/transcript_ja.json
+  --input  work/transcript_en.json \
+  --lang   ja \
+  --out    work/transcript_ja.json
+# → agent 读取输出，翻译后写入 work/transcript_ja.json
 
 # Step 3 — TTS 合成（生成 work/tts_segments/seg_*.mp3）
 python3 steps/synthesize.py \
@@ -131,7 +135,7 @@ python3 pipeline.py --video source.mp4 \
 | `--voice` | `ja-JP-NanamiNeural` | edge-tts 语音名称 |
 | `--rate` | `+15%` | 语速偏移；+15% 为职业播音节奏 |
 | `--whisper-model` | `medium` | `tiny` 最快 ↔ `large-v3` 最准 |
-| `--translator` | `claude` | `claude` / `openai` / `none` |
+| `--translator` | `native` | `native`（agent 内置翻译）/ `none`（复制源） |
 | `--style` | *(自动)* | 翻译语体提示词 |
 | `--crf` | `22` | x264 质量（18=高质量，28=小文件） |
 | `--work-dir` | `<stem>_dub_work/` | 中间文件目录 |
@@ -206,7 +210,7 @@ video_dub/
 ├── pipeline.py       全流程一键运行
 └── steps/
     ├── transcribe.py Step 1：faster-whisper ASR
-    ├── translate.py  Step 2：LLM 翻译
+    ├── translate.py  Step 2：Agent 内置翻译（无需 API Key）
     ├── synthesize.py Step 3：edge-tts TTS
     ├── assemble.py   Step 4：逐段拼装（核心）
     └── mux.py        Step 5：最终合流

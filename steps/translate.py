@@ -1,22 +1,23 @@
 #!/usr/bin/env python3
 """
-Step 2 — Translate timestamped segments with an LLM.
+Step 2 — Translate timestamped segments using the calling coding agent.
 
-Supports:
-  --translator claude   (ANTHROPIC_API_KEY)
-  --translator openai   (OPENAI_API_KEY)
-  --translator none     (copy source JSON; fill in translations manually)
+Native mode (default): prints a structured translation task so the calling
+agent (Claude Code / Codex / IBM Bob / …) can translate with its built-in
+capabilities — no external API key required.
 
-Output preserves segment count, start/end timestamps, and JSON structure.
+None mode (--translator none): copies source segments unchanged.
+
+Workflow for native mode:
+  1. Run pipeline.py normally (or this script standalone).
+  2. The pipeline prints the translation task and exits cleanly.
+  3. The agent translates the segments and writes transcript_{lang}.json.
+  4. Resume: pipeline.py --translated work/transcript_{lang}.json …
 """
 import argparse
 import json
-import os
-import re
 import sys
 from pathlib import Path
-
-CHUNK = 25  # segments per API call
 
 SYSTEM_TEMPLATE = """\
 You are a professional video localization expert for enterprise software products.
@@ -42,6 +43,7 @@ LANG_DEFAULTS: dict[str, dict] = {
     "fr": {"name": "French (vouvoiement, formel)", "style": "Formal business French", "mora_rate": 4},
     "de": {"name": "German (Sie, formell)", "style": "Formal business German", "mora_rate": 4},
     "pt": {"name": "Portuguese (você, formal)", "style": "Formal business Portuguese", "mora_rate": 4},
+    "ar": {"name": "Arabic (Modern Standard Arabic, formal)", "style": "Formal MSA business register", "mora_rate": 4},
 }
 
 
@@ -54,80 +56,60 @@ def _build_system(lang: str, style: str | None) -> str:
     )
 
 
-def _parse_raw(raw: str, fallback: list[dict]) -> list[dict]:
-    raw = re.sub(r"^```[a-z]*\n?", "", raw.strip()).rstrip("`").strip()
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError:
-        print(f"  [WARN] JSON parse failed — keeping originals for this chunk")
-        return fallback
+def translate_native(segs: list[dict], lang: str, style: str | None, out_path: Path) -> None:
+    """
+    Print a structured translation task for the calling agent, then exit.
 
-
-def translate_claude(segs: list[dict], lang: str, style: str | None, model: str) -> list[dict]:
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if not api_key:
-        sys.exit("ERROR: ANTHROPIC_API_KEY not set")
-    try:
-        import anthropic
-    except ImportError:
-        sys.exit("ERROR: anthropic package not installed")
-
-    client = anthropic.Anthropic(api_key=api_key)
+    The agent should:
+      1. Translate every segment following the system prompt below.
+      2. Write the result JSON to out_path.
+      3. Resume the pipeline with --translated <out_path>.
+    """
+    defaults = LANG_DEFAULTS.get(lang, {"name": lang, "style": "Formal business register", "mora_rate": 5})
     system = _build_system(lang, style)
-    result = []
+    sep = "═" * 60
 
-    for i in range(0, len(segs), CHUNK):
-        chunk = segs[i : i + CHUNK]
-        msg = client.messages.create(
-            model=model,
-            max_tokens=4096,
-            system=system,
-            messages=[{"role": "user", "content": json.dumps(chunk, ensure_ascii=False, indent=2)}],
-        )
-        result.extend(_parse_raw(msg.content[0].text, chunk))
-        print(f"  [translate/claude] {min(i + CHUNK, len(segs))}/{len(segs)} segments")
-
-    return result
-
-
-def translate_openai(segs: list[dict], lang: str, style: str | None, model: str) -> list[dict]:
-    api_key = os.environ.get("OPENAI_API_KEY", "")
-    if not api_key:
-        sys.exit("ERROR: OPENAI_API_KEY not set")
-    try:
-        from openai import OpenAI
-    except ImportError:
-        sys.exit("ERROR: openai package not installed")
-
-    client = OpenAI(api_key=api_key)
-    system = _build_system(lang, style)
-    result = []
-
-    for i in range(0, len(segs), CHUNK):
-        chunk = segs[i : i + CHUNK]
-        resp = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system},
-                {"role": "user", "content": json.dumps(chunk, ensure_ascii=False, indent=2)},
-            ],
-            max_tokens=4096,
-        )
-        result.extend(_parse_raw(resp.choices[0].message.content or "", chunk))
-        print(f"  [translate/openai] {min(i + CHUNK, len(segs))}/{len(segs)} segments")
-
-    return result
+    print(f"\n{sep}")
+    print("  ACTION REQUIRED — Native Translation Task")
+    print(sep)
+    print(f"\nTarget language : {defaults['name']}  (code: {lang})")
+    print(f"Style           : {style or defaults['style']}")
+    print(f"Speech pace     : {defaults['mora_rate']} mora/s target")
+    print(f"Output file     : {out_path}")
+    print(f"\n{'─' * 60}")
+    print("SYSTEM PROMPT:")
+    print(system)
+    print(f"{'─' * 60}")
+    print(f"SEGMENTS ({len(segs)} total):")
+    print(json.dumps(segs, ensure_ascii=False, indent=2))
+    print(f"{'─' * 60}")
+    print("\nINSTRUCTIONS FOR THE AGENT:")
+    print("  1. Translate every segment above following the system prompt.")
+    print('  2. Keep the exact JSON structure: [{"start":…,"end":…,"text":"…"},…]')
+    print(f"  3. Preserve segment count exactly: {len(segs)} segments.")
+    print(f"  4. Write the translated JSON to:\n       {out_path}")
+    print(f"  5. Resume the pipeline:\n")
+    print(f"       python3 pipeline.py --video <source.mp4> \\")
+    print(f"         --translated {out_path} --out <output.mp4>")
+    print(f"\n{sep}\n")
+    sys.exit(0)
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Translate subtitle segments with an LLM")
-    p.add_argument("--input",       required=True, type=Path, help="Source JSON (transcript_en.json)")
-    p.add_argument("--out",         required=True, type=Path, help="Output JSON path")
-    p.add_argument("--lang",        default="ja",  help="Target language code (ja/zh/ko/en/es/fr/de/pt)")
-    p.add_argument("--style",       default=None,  help="Override register/tone hint for the prompt")
-    p.add_argument("--translator",  default="claude", choices=["claude", "openai", "none"])
-    p.add_argument("--claude-model",default="claude-opus-4-5")
-    p.add_argument("--openai-model",default="gpt-4o")
+    p = argparse.ArgumentParser(
+        description="Translate subtitle segments (native agent mode — no API key required)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Translators:
+  native  (default) — print translation task for the calling agent; no API key needed
+  none              — copy source segments unchanged (fill in translations manually)
+        """,
+    )
+    p.add_argument("--input",      required=True, type=Path, help="Source JSON (transcript_en.json)")
+    p.add_argument("--out",        required=True, type=Path, help="Output JSON path (agent will write here)")
+    p.add_argument("--lang",       default="ja",  help="Target language code (ja/zh/ko/en/es/fr/de/pt/ar)")
+    p.add_argument("--style",      default=None,  help="Override register/tone hint for the prompt")
+    p.add_argument("--translator", default="native", choices=["native", "none"])
     args = p.parse_args()
 
     if not args.input.exists():
@@ -136,20 +118,14 @@ def main() -> None:
     segs = json.loads(args.input.read_text(encoding="utf-8"))
     print(f"[translate] {len(segs)} segments, target={args.lang}, translator={args.translator}")
 
-    if args.translator == "claude":
-        translated = translate_claude(segs, args.lang, args.style, args.claude_model)
-    elif args.translator == "openai":
-        translated = translate_openai(segs, args.lang, args.style, args.openai_model)
+    if args.translator == "native":
+        translate_native(segs, args.lang, args.style, args.out.resolve())
+        # translate_native calls sys.exit — execution stops here
     else:
-        print("[translate] translator=none — copying source JSON (fill in translations manually)")
-        translated = segs
-
-    if len(translated) != len(segs):
-        print(f"  [WARN] segment count mismatch: got {len(translated)}, expected {len(segs)}")
-
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(translated, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"[translate] done → {args.out}")
+        print("[translate] translator=none — copying source segments (fill in translations manually)")
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(json.dumps(segs, ensure_ascii=False, indent=2), encoding="utf-8")
+        print(f"[translate] done → {args.out}")
 
 
 if __name__ == "__main__":

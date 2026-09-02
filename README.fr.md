@@ -7,7 +7,7 @@
 Doublage de n'importe quelle vidéo MP4 dans une autre langue. Fonctionnalités :
 
 - **Transcription ASR** — faster-whisper (fonctionne entièrement hors ligne)
-- **Traduction LLM** — Claude ou GPT, registre professionnel, concis
+- **Traduction Agent** — capacité intégrée de l'agent de codage (Claude Code / Codex / IBM Bob), registre professionnel, aucune clé API requise
 - **TTS neural** — edge-tts (plus de 400 voix, aucune clé API requise)
 - **Synchronisation par image figée** — si la durée TTS dépasse la fenêtre du segment original, la dernière image est figée jusqu'à la fin de la parole, évitant ainsi tout décalage en cascade
 - **Sous-titres souples** — flux `mov_text`, activable/désactivable dans QuickTime / VLC / mpv
@@ -20,8 +20,6 @@ Doublage de n'importe quelle vidéo MP4 dans une autre langue. Fonctionnalités 
 |-------|---------|-------------|
 | Python | ≥ 3.10 | [python.org](https://www.python.org) |
 | ffmpeg + ffprobe | ≥ 5.0 | `brew install ffmpeg` / `apt install ffmpeg` |
-| ANTHROPIC_API_KEY | — | Pour la traduction Claude |
-| OPENAI_API_KEY | — | Pour la traduction GPT (alternative) |
 
 ---
 
@@ -40,15 +38,21 @@ bash install.sh
 ## Démarrage rapide
 
 ```bash
-# Définir la clé API
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# Pipeline complet en une seule commande
+# Phase 1 — transcription + affichage de la tâche de traduction (aucune clé API)
 .venv/bin/python3 pipeline.py \
   --video  /chemin/vers/source.mp4 \
   --lang   fr \
-  --voice  fr-FR-DeniseNeural \
-  --out    /chemin/vers/source_fr.mp4
+  --voice  fr-FR-DeniseNeural
+
+# Le pipeline s'arrête et affiche tous les segments avec les instructions de traduction.
+# L'agent (Claude Code / Codex / IBM Bob) traduit et écrit :
+#   /chemin/vers/<stem>_dub_work/transcript_fr.json
+
+# Phase 2 — reprendre après la traduction
+.venv/bin/python3 pipeline.py \
+  --video      /chemin/vers/source.mp4 \
+  --translated /chemin/vers/<stem>_dub_work/transcript_fr.json \
+  --out        /chemin/vers/source_fr.mp4
 ```
 
 Le fichier MP4 de sortie contient :
@@ -69,12 +73,12 @@ python3 steps/transcribe.py \
   --model  medium \
   --out    work/transcript_en.json
 
-# Étape 2 — Traduction (génère transcript_fr.json)
+# Étape 2 — Traduction (affiche la tâche ; l'agent écrit work/transcript_fr.json)
 python3 steps/translate.py \
-  --input      work/transcript_en.json \
-  --lang       fr \
-  --translator claude \
-  --out        work/transcript_fr.json
+  --input  work/transcript_en.json \
+  --lang   fr \
+  --out    work/transcript_fr.json
+# → l'agent lit la sortie, traduit et écrit work/transcript_fr.json
 
 # Étape 3 — Synthèse TTS (génère work/tts_segments/seg_*.mp3)
 python3 steps/synthesize.py \
@@ -131,7 +135,7 @@ python3 pipeline.py --video source.mp4 \
 | `--voice` | `ja-JP-NanamiNeural` | Nom de la voix edge-tts |
 | `--rate` | `+15%` | Vitesse de parole ; +15 % = rythme de présentateur professionnel |
 | `--whisper-model` | `medium` | `tiny` (rapide) ↔ `large-v3` (précis) |
-| `--translator` | `claude` | `claude` / `openai` / `none` |
+| `--translator` | `native` | `native` (l'agent traduit en interne) / `none` (copier la source) |
 | `--style` | *(auto)* | Indication de registre pour le prompt de traduction |
 | `--crf` | `22` | Qualité x264 (18 = haute qualité, 28 = fichier léger) |
 | `--work-dir` | `<stem>_dub_work/` | Répertoire des fichiers intermédiaires |
@@ -206,7 +210,7 @@ video_dub/
 ├── pipeline.py       Pipeline complet en une commande
 └── steps/
     ├── transcribe.py Étape 1 : ASR faster-whisper
-    ├── translate.py  Étape 2 : traduction LLM
+    ├── translate.py  Étape 2 : traduction Agent intégrée (sans clé API)
     ├── synthesize.py Étape 3 : synthèse TTS edge-tts
     ├── assemble.py   Étape 4 : assemblage par segment (cœur de l'algo)
     └── mux.py        Étape 5 : multiplexage final

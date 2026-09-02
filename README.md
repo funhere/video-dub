@@ -7,7 +7,7 @@
 Dub any MP4 video into another language with:
 
 - **ASR transcription** — faster-whisper (runs fully offline)
-- **LLM translation** — Claude or GPT, business register, concise
+- **Agent translation** — built-in coding agent capability (Claude Code / Codex / IBM Bob), business register, no API key required
 - **Neural TTS** — edge-tts (400+ voices, no API key needed)
 - **Per-segment freeze-frame sync** — if TTS overruns the original clip, the video holds its last frame instead of cascading drift
 - **Soft subtitles** — `mov_text` stream, toggleable in QuickTime / VLC / mpv
@@ -20,8 +20,6 @@ Dub any MP4 video into another language with:
 |------|---------|---------|
 | Python | ≥ 3.10 | [python.org](https://www.python.org) |
 | ffmpeg + ffprobe | ≥ 5.0 | `brew install ffmpeg` / `apt install ffmpeg` |
-| ANTHROPIC_API_KEY | — | for Claude translation |
-| OPENAI_API_KEY | — | for GPT translation (alternative) |
 
 ---
 
@@ -40,15 +38,21 @@ bash install.sh
 ## Quick start
 
 ```bash
-# Set your API key
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# Full pipeline in one command
+# Phase 1 — transcribe + print translation task (no API key needed)
 .venv/bin/python3 pipeline.py \
   --video  /path/to/source.mp4 \
   --lang   ja \
-  --voice  ja-JP-NanamiNeural \
-  --out    /path/to/source_ja.mp4
+  --voice  ja-JP-NanamiNeural
+
+# The pipeline pauses and prints all segments with translation instructions.
+# The agent (Claude Code / Codex / IBM Bob) translates and writes:
+#   /path/to/<stem>_dub_work/transcript_ja.json
+
+# Phase 2 — resume after translation
+.venv/bin/python3 pipeline.py \
+  --video      /path/to/source.mp4 \
+  --translated /path/to/<stem>_dub_work/transcript_ja.mp4 \
+  --out        /path/to/source_ja.mp4
 ```
 
 The output MP4 is a fully dubbed video with:
@@ -69,12 +73,12 @@ python3 steps/transcribe.py \
   --model  medium \
   --out    work/transcript_en.json
 
-# Step 2 — Translate (produces transcript_ja.json)
+# Step 2 — Translate (prints task; agent writes work/transcript_ja.json)
 python3 steps/translate.py \
-  --input      work/transcript_en.json \
-  --lang       ja \
-  --translator claude \
-  --out        work/transcript_ja.json
+  --input  work/transcript_en.json \
+  --lang   ja \
+  --out    work/transcript_ja.json
+# → agent reads output, translates, writes work/transcript_ja.json
 
 # Step 3 — Synthesize TTS (produces work/tts_segments/seg_*.mp3)
 python3 steps/synthesize.py \
@@ -131,7 +135,7 @@ python3 pipeline.py --video source.mp4 \
 | `--voice` | `ja-JP-NanamiNeural` | edge-tts voice |
 | `--rate` | `+15%` | Speech rate; +15% = professional presenter pace |
 | `--whisper-model` | `medium` | `tiny` fastest ↔ `large-v3` most accurate |
-| `--translator` | `claude` | `claude` / `openai` / `none` |
+| `--translator` | `native` | `native` (agent translates inline) / `none` (copy source) |
 | `--style` | *(auto)* | Register hint in translation prompt |
 | `--crf` | `22` | x264 quality (18=high, 28=small file) |
 | `--work-dir` | `<stem>_dub_work/` | Intermediates directory |
@@ -213,7 +217,7 @@ video_dub/
 ├── pipeline.py       all-in-one runner
 └── steps/
     ├── transcribe.py Step 1: faster-whisper ASR
-    ├── translate.py  Step 2: LLM translation (Claude / OpenAI)
+    ├── translate.py  Step 2: native agent translation (no API key)
     ├── synthesize.py Step 3: edge-tts TTS synthesis
     ├── assemble.py   Step 4: per-segment video+audio+SRT
     └── mux.py        Step 5: final MP4 mux

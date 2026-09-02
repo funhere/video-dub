@@ -7,7 +7,7 @@
 任意の MP4 動画を他の言語に吹き替えるツールです。
 
 - **ASR 文字起こし** — faster-whisper（完全オフライン動作）
-- **LLM 翻訳** — Claude または GPT による、ビジネス敬語・簡潔な翻訳
+- **Agent 翻訳** — コーディング Agent（Claude Code / Codex / IBM Bob）の内蔵機能を使用、ビジネス敬語、API Key 不要
 - **ニューラル TTS** — edge-tts（400 以上のボイス、API Key 不要）
 - **セグメント単位フリーズフレーム同期** — TTS 音声がセグメント時間窓を超過した場合、映像を最終フレームで停止して音声完了を待機（カスケードずれを防止）
 - **ソフト字幕** — `mov_text` ストリーム（QuickTime / VLC / mpv でオン/オフ切替可能）
@@ -20,8 +20,6 @@
 |--------|-----------|------------|
 | Python | ≥ 3.10 | [python.org](https://www.python.org) |
 | ffmpeg + ffprobe | ≥ 5.0 | `brew install ffmpeg` / `apt install ffmpeg` |
-| ANTHROPIC_API_KEY | — | Claude 翻訳に必要 |
-| OPENAI_API_KEY | — | GPT 翻訳に必要（代替） |
 
 ---
 
@@ -40,15 +38,21 @@ bash install.sh
 ## クイックスタート
 
 ```bash
-# API Key を設定
-export ANTHROPIC_API_KEY=sk-ant-...
-
-# 1 コマンドで全工程を実行
+# フェーズ 1 — 文字起こし + 翻訳タスク表示（API Key 不要）
 .venv/bin/python3 pipeline.py \
   --video  /path/to/source.mp4 \
   --lang   ja \
-  --voice  ja-JP-NanamiNeural \
-  --out    /path/to/source_ja.mp4
+  --voice  ja-JP-NanamiNeural
+
+# パイプラインが一時停止し、全セグメントと翻訳指示を表示します。
+# Agent（Claude Code / Codex / IBM Bob）が翻訳して書き込みます：
+#   /path/to/<stem>_dub_work/transcript_ja.json
+
+# フェーズ 2 — 翻訳完了後に再開
+.venv/bin/python3 pipeline.py \
+  --video      /path/to/source.mp4 \
+  --translated /path/to/<stem>_dub_work/transcript_ja.json \
+  --out        /path/to/source_ja.mp4
 ```
 
 出力 MP4 には次のストリームが含まれます：
@@ -69,12 +73,12 @@ python3 steps/transcribe.py \
   --model  medium \
   --out    work/transcript_en.json
 
-# Step 2 — 翻訳（transcript_ja.json を生成）
+# Step 2 — 翻訳（タスク表示；agent が work/transcript_ja.json を書き込む）
 python3 steps/translate.py \
-  --input      work/transcript_en.json \
-  --lang       ja \
-  --translator claude \
-  --out        work/transcript_ja.json
+  --input  work/transcript_en.json \
+  --lang   ja \
+  --out    work/transcript_ja.json
+# → agent が出力を読み、翻訳して work/transcript_ja.json を書き込む
 
 # Step 3 — TTS 合成（work/tts_segments/seg_*.mp3 を生成）
 python3 steps/synthesize.py \
@@ -131,7 +135,7 @@ python3 pipeline.py --video source.mp4 \
 | `--voice` | `ja-JP-NanamiNeural` | edge-tts ボイス名 |
 | `--rate` | `+15%` | 発話速度；+15% がプロのナレーターのペース |
 | `--whisper-model` | `medium` | `tiny`（高速） ↔ `large-v3`（高精度） |
-| `--translator` | `claude` | `claude` / `openai` / `none` |
+| `--translator` | `native` | `native`（agent 内蔵翻訳） / `none`（ソースをコピー） |
 | `--style` | *(自動)* | 翻訳の語調プロンプト |
 | `--crf` | `22` | x264 品質（18=高品質、28=小ファイル） |
 | `--work-dir` | `<stem>_dub_work/` | 中間ファイル保存先 |
@@ -206,7 +210,7 @@ video_dub/
 ├── pipeline.py       全工程一括実行
 └── steps/
     ├── transcribe.py Step 1：faster-whisper ASR
-    ├── translate.py  Step 2：LLM 翻訳
+    ├── translate.py  Step 2：Agent 内蔵翻訳（API Key 不要）
     ├── synthesize.py Step 3：edge-tts TTS 合成
     ├── assemble.py   Step 4：逐段アセンブル（コアアルゴリズム）
     └── mux.py        Step 5：最終マルチプレックス
