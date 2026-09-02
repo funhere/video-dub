@@ -1,5 +1,9 @@
 # video-dub
 
+[English](README.md) · [中文](README.zh.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Deutsch](README.de.md) · **Français** · [Español](README.es.md) · [العربية](README.ar.md)
+
+---
+
 Doublage de n'importe quelle vidéo MP4 dans une autre langue. Fonctionnalités :
 
 - **Transcription ASR** — faster-whisper (fonctionne entièrement hors ligne)

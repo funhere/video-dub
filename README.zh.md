@@ -1,5 +1,9 @@
 # video-dub
 
+[English](README.md) · **中文** · [日本語](README.ja.md) · [한국어](README.ko.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Español](README.es.md) · [العربية](README.ar.md)
+
+---
+
 将任意 MP4 视频配音为其他语言，功能包括：
 
 - **ASR 转写** — faster-whisper（完全离线运行）

@@ -1,5 +1,9 @@
 # video-dub
 
+[English](README.md) · [中文](README.zh.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · **Deutsch** · [Français](README.fr.md) · [Español](README.es.md) · [العربية](README.ar.md)
+
+---
+
 Synchronisiert beliebige MP4-Videos in eine andere Sprache. Funktionen:
 
 - **ASR-Transkription** — faster-whisper (vollständig offline)

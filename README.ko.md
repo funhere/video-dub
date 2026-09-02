@@ -1,5 +1,9 @@
 # video-dub
 
+[English](README.md) · [中文](README.zh.md) · [日本語](README.ja.md) · **한국어** · [Deutsch](README.de.md) · [Français](README.fr.md) · [Español](README.es.md) · [العربية](README.ar.md)
+
+---
+
 모든 MP4 동영상을 다른 언어로 더빙합니다.
 
 - **ASR 음성 인식** — faster-whisper（완전 오프라인 동작）

@@ -1,5 +1,9 @@
 # video-dub
 
+[English](README.md) · [中文](README.zh.md) · **日本語** · [한국어](README.ko.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Español](README.es.md) · [العربية](README.ar.md)
+
+---
+
 任意の MP4 動画を他の言語に吹き替えるツールです。
 
 - **ASR 文字起こし** — faster-whisper（完全オフライン動作）

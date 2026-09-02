@@ -1,5 +1,9 @@
 # video-dub
 
+**English** · [中文](README.zh.md) · [日本語](README.ja.md) · [한국어](README.ko.md) · [Deutsch](README.de.md) · [Français](README.fr.md) · [Español](README.es.md) · [العربية](README.ar.md)
+
+---
+
 Dub any MP4 video into another language with:
 
 - **ASR transcription** — faster-whisper (runs fully offline)
