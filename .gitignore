@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*_dub_work/
+*.wav
+*.mp3
+*.mp4
+!README*.md
