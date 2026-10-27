@@ -1,3 +1,9 @@
+---
+name: video-dub
+description: Dub an MP4 video into another language (transcribe with faster-whisper, agent-native translation, edge-tts synthesis, freeze-frame alignment, burned-in subtitles). Use when the user asks to dub, localize, or translate the speech of a video.
+---
+
+
 # video-dub Skill
 
 Dub any MP4 video into another language with per-segment freeze-frame alignment,

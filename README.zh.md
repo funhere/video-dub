@@ -150,20 +150,22 @@ python3 pipeline.py --video source.mp4 \
   overrun = max(0, tts时长 − window)
 
   ┌─────────────────────────────────────┐
-  │  视频：原始片段（window 秒）         │
-  │        + 冻结最后一帧               │  ← 仅当 overrun > 0
-  │          （overrun 秒）             │
+  │  视频：原始片段（window 秒）           │
+  │        + 冻结最后一帧                 │  ← 仅当 overrun > 0
+  │          （overrun 秒）              │
   └─────────────────────────────────────┘
   ┌─────────────────────────────────────┐
-  │  音频：TTS（tts时长 秒）            │
-  │        + 静音                       │  ← 仅当 overrun = 0
-  │          （window − tts时长 秒）    │
+  │  音频：TTS（tts时长 秒）               │
+  │        + 静音                        │  ← 仅当 overrun = 0
+  │          （window − tts时长 秒）      │
   └─────────────────────────────────────┘
 
   SRT 时间戳 = 输出时间线累加位置（非原始时间戳）
 ```
 
 每段完全独立，彻底消除级联偏移问题。
+
+这解决了顺序对齐导致的累积时间偏移问题。每个片段独立处理：视频自然播放（保留静音）或通过冻结画面延长，并根据最终输出时间轴重新计算字幕时间。
 
 ---
 
@@ -195,6 +197,14 @@ cp SKILL.md /your/project/.claude/agents/video-dub.md
 > "把 `/path/to/source.mp4` 配音成日语，商务风格。"
 
 Claude 会读取技能文件，解析路径，自动运行 `pipeline.py`。
+
+## 在 IBM Bob / Codex / 其他 LLM 工具中使用
+
+`SKILL.md` 是一份自包含的 LLM 指令文档。将你的工具指向它即可：
+
+- **IBM Bob**：将其作为 `video-dub.md` 添加到 skills/instructions 目录
+- **Codex / GPT-4**：将 `SKILL.md` 的内容加入系统提示词或项目指令中
+- **通用**：任何能够读取文件并执行 shell 命令的 LLM 都可以遵循 SKILL.md
 
 ---
 

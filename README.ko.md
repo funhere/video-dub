@@ -196,6 +196,14 @@ Claude Code에서 다음과 같이 요청하면 됩니다：
 
 Claude가 스킬 파일을 읽고 경로를 파악하여 `pipeline.py`를 자동으로 실행합니다.
 
+## IBM Bob / Codex / 기타 LLM 도구에서 사용하기
+
+`SKILL.md`는 자체 완결형 LLM 지침 문서입니다. 사용하는 도구가 이 파일을 참조하도록 설정하세요：
+
+- **IBM Bob**: skills/instructions 디렉토리에 `video-dub.md`로 추가
+- **Codex / GPT-4**: `SKILL.md` 내용을 시스템 프롬프트 또는 프로젝트 지침에 포함
+- **범용**: 파일을 읽고 셸 명령을 실행할 수 있는 LLM이라면 SKILL.md를 따를 수 있습니다
+
 ---
 
 ## 프로젝트 구조

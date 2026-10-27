@@ -12,6 +12,20 @@ import sys
 from pathlib import Path
 
 
+async def _synth_one(edge_tts, text: str, voice: str, rate: str, out: Path, retries: int = 5) -> None:
+    for attempt in range(retries):
+        try:
+            comm = edge_tts.Communicate(text=text, voice=voice, rate=rate)
+            await comm.save(str(out))
+            return
+        except Exception as e:
+            if attempt == retries - 1:
+                raise
+            wait = 2 ** attempt
+            print(f"  [synthesize] retry {attempt + 1}/{retries - 1} for {out.name} ({e.__class__.__name__}), waiting {wait}s…")
+            await asyncio.sleep(wait)
+
+
 async def _synth_all(segs: list[dict], voice: str, rate: str, out_dir: Path) -> list[Path]:
     try:
         import edge_tts
@@ -22,12 +36,13 @@ async def _synth_all(segs: list[dict], voice: str, rate: str, out_dir: Path) -> 
     for idx, seg in enumerate(segs):
         out = out_dir / f"seg_{idx:04d}.mp3"
         text = (seg.get("text") or "").strip()
-        if out.exists():
+        if out.exists() and out.stat().st_size > 0:
             paths.append(out)
             continue
+        if out.exists():
+            out.unlink()  # empty file from crashed prior run
         if text:
-            comm = edge_tts.Communicate(text=text, voice=voice, rate=rate)
-            await comm.save(str(out))
+            await _synth_one(edge_tts, text, voice, rate, out)
         else:
             # Empty segment — generate minimal silence placeholder
             subprocess.run(

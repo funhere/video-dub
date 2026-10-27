@@ -196,6 +196,14 @@ A continuación, indique en Claude Code:
 
 Claude leerá el archivo skill, resolverá las rutas y ejecutará `pipeline.py` automáticamente.
 
+## Uso en IBM Bob / Codex / otras herramientas LLM
+
+El archivo `SKILL.md` es un documento de instrucciones para LLM autocontenido. Indique a su herramienta que lo utilice:
+
+- **IBM Bob**: añádalo a su directorio de skills/instrucciones como `video-dub.md`
+- **Codex / GPT-4**: incluya el contenido de `SKILL.md` en su prompt de sistema o en las instrucciones del proyecto
+- **Genérico**: cualquier LLM que pueda leer archivos y ejecutar comandos de shell puede seguir SKILL.md
+
 ---
 
 ## Estructura del proyecto
