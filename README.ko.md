@@ -181,6 +181,78 @@ python3 pipeline.py --video source.mp4 \
 | 프랑스어 | `fr-FR-DeniseNeural` | `fr-FR-HenriNeural` |
 | 독일어 | `de-DE-KatjaNeural` | `de-DE-ConradNeural` |
 
+**중국어 음성（스타일별）：**
+
+| 음성 | 성별 | 스타일 |
+|------|------|--------|
+| `zh-CN-YunjianNeural` | 남성 | 차분하고 낮은 톤——다큐멘터리에 적합 |
+| `zh-CN-YunyangNeural` | 남성 | 뉴스 앵커 톤 |
+| `zh-CN-YunxiNeural` | 남성 | 활기차고 대화체 |
+| `zh-CN-XiaoxiaoNeural` | 여성 | 다용도·자연스러운 |
+| `zh-CN-XiaoyiNeural` | 여성 | 표현력 풍부하고 따뜻한 |
+
+**`--rate` 가이드：**
+
+| 값 | 효과 |
+|----|------|
+| `0%` | 기본값（약간 느림） |
+| `+10%` | 자연스럽고 편안함 |
+| `+15%` | 권장——전문 나레이터 페이스 |
+| `+20%` | 빠름, 내용이 많은 영상에 적합 |
+| `-10%` | 느림, 튜토리얼에 적합 |
+
+---
+
+## 커스텀 음성
+
+자신의 목소리나 특정 화자의 목소리를 복제할 수 있습니다. 두 가지 옵션이 있습니다：
+
+### 옵션 A — ElevenLabs（가장 간단, 클라우드）
+
+```bash
+pip install elevenlabs
+```
+
+```python
+# 한 번만 실행：음성 복제
+from elevenlabs.client import ElevenLabs
+client = ElevenLabs(api_key="YOUR_KEY")   # elevenlabs.io에서 무료 발급
+voice = client.clone(name="my-voice", files=["my_recording.mp3"])
+print("voice_id:", voice.voice_id)        # 이 ID를 저장하세요
+```
+
+```bash
+# 복제한 음성 사용
+python3 steps/synthesize.py \
+  --transcript work/transcript_ko.json \
+  --out-dir    work/tts/ \
+  --provider   elevenlabs \
+  --elevenlabs-voice-id  <voice_id> \
+  --elevenlabs-api-key   $ELEVENLABS_API_KEY \
+  --elevenlabs-model     eleven_multilingual_v2
+```
+
+**녹음 팁：** 조용한 공간, 1–3분, 명확한 발음, 배경음악 없음.
+
+### 옵션 B — CosyVoice（중국어에 최적, 오픈소스）
+
+**3–30초**의 참조 음성만으로 복제 가능.
+
+```bash
+pip install modelscope   # API 사용 시 GPU 불필요
+```
+
+```bash
+python3 steps/synthesize.py \
+  --transcript work/transcript_zh.json \
+  --out-dir    work/tts/ \
+  --provider   cosyvoice \
+  --ref-audio  my_recording.mp3 \
+  --ref-text   "녹음에서 말한 내용."
+```
+
+두 옵션 모두 동일한 `seg_NNNN.mp3` 파일을 출력하므로 `assemble.py`와 `mux.py`는 변경이 필요 없습니다.
+
 ---
 
 ## Claude Code에서 사용하기

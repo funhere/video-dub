@@ -174,12 +174,84 @@ Run `edge-tts --list-voices` to see all 400+ voices. Common choices:
 | Language | Female | Male |
 |----------|--------|------|
 | Japanese | `ja-JP-NanamiNeural` | `ja-JP-KeitaNeural` |
-| Chinese | `zh-CN-XiaoxiaoNeural` | `zh-CN-YunxiNeural` |
+| Chinese | `zh-CN-XiaoxiaoNeural` | `zh-CN-YunjianNeural` |
 | Korean | `ko-KR-SunHiNeural` | `ko-KR-InJoonNeural` |
 | English (US) | `en-US-JennyNeural` | `en-US-GuyNeural` |
 | Spanish | `es-ES-ElviraNeural` | `es-ES-AlvaroNeural` |
 | French | `fr-FR-DeniseNeural` | `fr-FR-HenriNeural` |
 | German | `de-DE-KatjaNeural` | `de-DE-ConradNeural` |
+
+**Chinese voices by style:**
+
+| Voice | Gender | Style |
+|-------|--------|-------|
+| `zh-CN-YunjianNeural` | Male | Calm, composed — good for documentaries |
+| `zh-CN-YunyangNeural` | Male | News broadcast tone |
+| `zh-CN-YunxiNeural` | Male | Lively, conversational |
+| `zh-CN-XiaoxiaoNeural` | Female | Versatile, natural |
+| `zh-CN-XiaoyiNeural` | Female | Expressive, warm |
+
+**`--rate` guide:**
+
+| Value | Effect |
+|-------|--------|
+| `0%` | Default (slightly slow) |
+| `+10%` | Natural, comfortable |
+| `+15%` | Recommended — professional narrator pace |
+| `+20%` | Fast, suits dense content |
+| `-10%` | Slower, suits tutorials |
+
+---
+
+## Custom voice
+
+Use your own voice or clone any speaker's voice. Two options:
+
+### Option A — ElevenLabs (easiest, cloud)
+
+```bash
+pip install elevenlabs
+```
+
+```python
+# Run once to clone your voice
+from elevenlabs.client import ElevenLabs
+client = ElevenLabs(api_key="YOUR_KEY")   # get free key at elevenlabs.io
+voice = client.clone(name="my-voice", files=["my_recording.mp3"])
+print("voice_id:", voice.voice_id)        # save this ID
+```
+
+```bash
+# Use the cloned voice
+python3 steps/synthesize.py \
+  --transcript work/transcript_zh.json \
+  --out-dir    work/tts/ \
+  --provider   elevenlabs \
+  --elevenlabs-voice-id  <voice_id> \
+  --elevenlabs-api-key   $ELEVENLABS_API_KEY \
+  --elevenlabs-model     eleven_multilingual_v2
+```
+
+**Recording tips:** quiet room, 1–3 min, clear speech, no background music.
+
+### Option B — CosyVoice (best for Chinese, open source)
+
+Clones voice from just **3–30 seconds** of reference audio.
+
+```bash
+pip install modelscope   # no GPU needed via API
+```
+
+```bash
+python3 steps/synthesize.py \
+  --transcript work/transcript_zh.json \
+  --out-dir    work/tts/ \
+  --provider   cosyvoice \
+  --ref-audio  my_recording.mp3 \
+  --ref-text   "What you said in the recording."
+```
+
+Both options produce the same `seg_NNNN.mp3` files — `assemble.py` and `mux.py` are unchanged.
 
 ---
 

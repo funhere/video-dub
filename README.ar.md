@@ -200,6 +200,86 @@ python3 pipeline.py --video source.mp4 \
 | الألمانية | `de-DE-KatjaNeural` | `de-DE-ConradNeural` |
 | العربية | `ar-SA-ZariyahNeural` | `ar-SA-HamedNeural` |
 
+**الأصوات الصينية حسب الأسلوب:**
+
+| الصوت | الجنس | الأسلوب |
+|-------|-------|---------|
+| `zh-CN-YunjianNeural` | ذكر | هادئ ورصين — مناسب للوثائقيات |
+| `zh-CN-YunyangNeural` | ذكر | نبرة مذيع أخبار |
+| `zh-CN-YunxiNeural` | ذكر | حيوي وحواري |
+| `zh-CN-XiaoxiaoNeural` | أنثى | متعدد الاستخدامات وطبيعي |
+| `zh-CN-XiaoyiNeural` | أنثى | معبّر ودافئ |
+
+**دليل `--rate`:**
+
+| القيمة | التأثير |
+|--------|---------|
+| `0%` | الافتراضي (بطيء نسبياً) |
+| `+10%` | طبيعي ومريح |
+| `+15%` | موصى به — وتيرة المذيع المحترف |
+| `+20%` | سريع، للمحتوى المكثف |
+| `-10%` | بطيء، للدروس التعليمية |
+
+---
+
+## الصوت المخصص
+
+استخدم صوتك الشخصي أو انسخ صوت أي متحدث. خياران متاحان:
+
+### الخيار أ — ElevenLabs (الأسهل، سحابي)
+
+</div>
+
+```bash
+pip install elevenlabs
+```
+
+```python
+# تُنفَّذ مرة واحدة: نسخ الصوت
+from elevenlabs.client import ElevenLabs
+client = ElevenLabs(api_key="YOUR_KEY")   # احصل على مفتاح مجاني من elevenlabs.io
+voice = client.clone(name="my-voice", files=["my_recording.mp3"])
+print("voice_id:", voice.voice_id)        # احفظ هذا المعرّف
+```
+
+```bash
+# استخدام الصوت المنسوخ
+python3 steps/synthesize.py \
+  --transcript work/transcript_ar.json \
+  --out-dir    work/tts/ \
+  --provider   elevenlabs \
+  --elevenlabs-voice-id  <voice_id> \
+  --elevenlabs-api-key   $ELEVENLABS_API_KEY \
+  --elevenlabs-model     eleven_multilingual_v2
+```
+
+<div dir="rtl">
+
+**نصائح التسجيل:** غرفة هادئة، 1–3 دقائق، كلام واضح، بدون موسيقى خلفية.
+
+### الخيار ب — CosyVoice (الأفضل للصينية، مفتوح المصدر)
+
+ينسخ الصوت من **3–30 ثانية** فقط من مقطع مرجعي.
+
+</div>
+
+```bash
+pip install modelscope   # لا يتطلب GPU عند استخدام API
+```
+
+```bash
+python3 steps/synthesize.py \
+  --transcript work/transcript_zh.json \
+  --out-dir    work/tts/ \
+  --provider   cosyvoice \
+  --ref-audio  my_recording.mp3 \
+  --ref-text   "ما قيل في التسجيل."
+```
+
+<div dir="rtl">
+
+كلا الخيارين ينتجان نفس ملفات `seg_NNNN.mp3` — `assemble.py` و`mux.py` لا يحتاجان تعديلاً.
+
 ---
 
 ## الاستخدام في Claude Code

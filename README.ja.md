@@ -184,6 +184,78 @@ TTS が短ければ無音で埋め、長ければ映像の最終フレームを�
 | フランス語 | `fr-FR-DeniseNeural` | `fr-FR-HenriNeural` |
 | ドイツ語 | `de-DE-KatjaNeural` | `de-DE-ConradNeural` |
 
+**中国語ボイス（スタイル別）：**
+
+| ボイス | 性別 | スタイル |
+|--------|------|----------|
+| `zh-CN-YunjianNeural` | 男性 | 落ち着いた低音——ドキュメンタリー向き |
+| `zh-CN-YunyangNeural` | 男性 | ニュースキャスター調 |
+| `zh-CN-YunxiNeural` | 男性 | 明るく会話的 |
+| `zh-CN-XiaoxiaoNeural` | 女性 | 汎用・自然 |
+| `zh-CN-XiaoyiNeural` | 女性 | 表現力豊か・温かみあり |
+
+**`--rate` ガイド：**
+
+| 値 | 効果 |
+|----|------|
+| `0%` | デフォルト（やや遅め） |
+| `+10%` | 自然で聴きやすい |
+| `+15%` | 推奨——プロのナレーターペース |
+| `+20%` | 速め、内容の濃いコンテンツ向き |
+| `-10%` | 遅め、チュートリアル向き |
+
+---
+
+## カスタムボイス
+
+自分の声や特定の話者の声でクローンを作成できます。2 つの方法があります：
+
+### オプション A — ElevenLabs（最も簡単、クラウド）
+
+```bash
+pip install elevenlabs
+```
+
+```python
+# 一度だけ実行：声のクローンを作成
+from elevenlabs.client import ElevenLabs
+client = ElevenLabs(api_key="YOUR_KEY")   # elevenlabs.io で無料取得
+voice = client.clone(name="my-voice", files=["my_recording.mp3"])
+print("voice_id:", voice.voice_id)        # この ID を保存してください
+```
+
+```bash
+# クローンしたボイスを使用
+python3 steps/synthesize.py \
+  --transcript work/transcript_ja.json \
+  --out-dir    work/tts/ \
+  --provider   elevenlabs \
+  --elevenlabs-voice-id  <voice_id> \
+  --elevenlabs-api-key   $ELEVENLABS_API_KEY \
+  --elevenlabs-model     eleven_multilingual_v2
+```
+
+**録音のヒント：** 静かな部屋で 1〜3 分、明瞭に話す、BGM なし。
+
+### オプション B — CosyVoice（中国語に最適、オープンソース）
+
+**3〜30 秒**の参照音声だけでクローン可能。
+
+```bash
+pip install modelscope   # API 経由なら GPU 不要
+```
+
+```bash
+python3 steps/synthesize.py \
+  --transcript work/transcript_zh.json \
+  --out-dir    work/tts/ \
+  --provider   cosyvoice \
+  --ref-audio  my_recording.mp3 \
+  --ref-text   "録音の中で話した内容。"
+```
+
+どちらの方法も同じ `seg_NNNN.mp3` ファイルを出力するため、`assemble.py` と `mux.py` は変更不要です。
+
 ---
 
 ## Claude Code での使用方法

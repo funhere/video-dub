@@ -183,6 +183,78 @@ python3 pipeline.py --video source.mp4 \
 | 法语 | `fr-FR-DeniseNeural` | `fr-FR-HenriNeural` |
 | 德语 | `de-DE-KatjaNeural` | `de-DE-ConradNeural` |
 
+**常用中文语音：**
+
+| 语音 | 性别 | 风格 |
+|------|------|------|
+| `zh-CN-YunjianNeural` | 男 | 沉稳内敛，适合纪录片 |
+| `zh-CN-YunyangNeural` | 男 | 新闻播报风格 |
+| `zh-CN-YunxiNeural` | 男 | 活泼，对话感强 |
+| `zh-CN-XiaoxiaoNeural` | 女 | 百搭，自然流畅 |
+| `zh-CN-XiaoyiNeural` | 女 | 富有表现力，温暖 |
+
+**`--rate` 参数说明：**
+
+| 值 | 效果 |
+|----|------|
+| `0%` | 默认（略慢） |
+| `+10%` | 自然舒适 |
+| `+15%` | 推荐——职业播音节奏 |
+| `+20%` | 较快，适合内容密集的视频 |
+| `-10%` | 较慢，适合教学视频 |
+
+---
+
+## 自定义语音
+
+使用自己的声音或克隆任意说话人的声音，两种方案可选：
+
+### 方案 A — ElevenLabs（最简单，云端）
+
+```bash
+pip install elevenlabs
+```
+
+```python
+# 一次性操作：克隆声音
+from elevenlabs.client import ElevenLabs
+client = ElevenLabs(api_key="YOUR_KEY")   # 在 elevenlabs.io 免费获取
+voice = client.clone(name="my-voice", files=["my_recording.mp3"])
+print("voice_id:", voice.voice_id)        # 保存此 ID
+```
+
+```bash
+# 使用克隆的声音
+python3 steps/synthesize.py \
+  --transcript work/transcript_zh.json \
+  --out-dir    work/tts/ \
+  --provider   elevenlabs \
+  --elevenlabs-voice-id  <voice_id> \
+  --elevenlabs-api-key   $ELEVENLABS_API_KEY \
+  --elevenlabs-model     eleven_multilingual_v2
+```
+
+**录音建议：** 安静环境，1–3 分钟，发音清晰，无背景音乐。
+
+### 方案 B — CosyVoice（中文效果最佳，开源）
+
+仅需 **3–30 秒**参考音频即可克隆声音。
+
+```bash
+pip install modelscope   # 通过 API 无需 GPU
+```
+
+```bash
+python3 steps/synthesize.py \
+  --transcript work/transcript_zh.json \
+  --out-dir    work/tts/ \
+  --provider   cosyvoice \
+  --ref-audio  my_recording.mp3 \
+  --ref-text   "录音中说的话。"
+```
+
+两种方案均输出相同的 `seg_NNNN.mp3` 文件——`assemble.py` 和 `mux.py` 无需修改。
+
 ---
 
 ## 在 Claude Code 中使用

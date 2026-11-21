@@ -181,6 +181,78 @@ Ejecute `edge-tts --list-voices` para ver las más de 400 voces disponibles:
 | Francés | `fr-FR-DeniseNeural` | `fr-FR-HenriNeural` |
 | Alemán | `de-DE-KatjaNeural` | `de-DE-ConradNeural` |
 
+**Voces chinas por estilo:**
+
+| Voz | Género | Estilo |
+|-----|--------|--------|
+| `zh-CN-YunjianNeural` | Masculina | Calmada, serena — ideal para documentales |
+| `zh-CN-YunyangNeural` | Masculina | Tono de presentador de noticias |
+| `zh-CN-YunxiNeural` | Masculina | Animada, conversacional |
+| `zh-CN-XiaoxiaoNeural` | Femenina | Versátil, natural |
+| `zh-CN-XiaoyiNeural` | Femenina | Expresiva, cálida |
+
+**Guía de `--rate`:**
+
+| Valor | Efecto |
+|-------|--------|
+| `0%` | Por defecto (ligeramente lento) |
+| `+10%` | Natural, cómodo |
+| `+15%` | Recomendado — ritmo de presentador profesional |
+| `+20%` | Rápido, para contenido denso |
+| `-10%` | Lento, para tutoriales |
+
+---
+
+## Voz personalizada
+
+Use su propia voz o clone la voz de cualquier locutor. Dos opciones:
+
+### Opción A — ElevenLabs (la más sencilla, en la nube)
+
+```bash
+pip install elevenlabs
+```
+
+```python
+# Ejecutar una sola vez: clonar la voz
+from elevenlabs.client import ElevenLabs
+client = ElevenLabs(api_key="YOUR_KEY")   # clave gratuita en elevenlabs.io
+voice = client.clone(name="my-voice", files=["my_recording.mp3"])
+print("voice_id:", voice.voice_id)        # guarde este ID
+```
+
+```bash
+# Usar la voz clonada
+python3 steps/synthesize.py \
+  --transcript work/transcript_es.json \
+  --out-dir    work/tts/ \
+  --provider   elevenlabs \
+  --elevenlabs-voice-id  <voice_id> \
+  --elevenlabs-api-key   $ELEVENLABS_API_KEY \
+  --elevenlabs-model     eleven_multilingual_v2
+```
+
+**Consejos de grabación:** habitación tranquila, 1–3 min, pronunciación clara, sin música de fondo.
+
+### Opción B — CosyVoice (mejor para chino, código abierto)
+
+Clona una voz a partir de solo **3–30 segundos** de audio de referencia.
+
+```bash
+pip install modelscope   # Sin GPU necesario vía API
+```
+
+```bash
+python3 steps/synthesize.py \
+  --transcript work/transcript_zh.json \
+  --out-dir    work/tts/ \
+  --provider   cosyvoice \
+  --ref-audio  my_recording.mp3 \
+  --ref-text   "Lo que se dice en la grabación."
+```
+
+Ambas opciones producen los mismos archivos `seg_NNNN.mp3` — `assemble.py` y `mux.py` no cambian.
+
 ---
 
 ## Uso en Claude Code

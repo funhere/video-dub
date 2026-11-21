@@ -181,6 +181,78 @@ Da jedes Segment unabhängig verarbeitet wird, entsteht kein kaskadierender Vers
 | Französisch | `fr-FR-DeniseNeural` | `fr-FR-HenriNeural` |
 | Deutsch | `de-DE-KatjaNeural` | `de-DE-ConradNeural` |
 
+**Chinesische Stimmen nach Stil:**
+
+| Stimme | Geschlecht | Stil |
+|--------|-----------|------|
+| `zh-CN-YunjianNeural` | Männlich | Ruhig, besonnen — für Dokumentationen |
+| `zh-CN-YunyangNeural` | Männlich | Nachrichtensprecher-Ton |
+| `zh-CN-YunxiNeural` | Männlich | Lebendig, konversationell |
+| `zh-CN-XiaoxiaoNeural` | Weiblich | Vielseitig, natürlich |
+| `zh-CN-XiaoyiNeural` | Weiblich | Ausdrucksstark, warm |
+
+**`--rate`-Leitfaden:**
+
+| Wert | Wirkung |
+|------|---------|
+| `0%` | Standard (etwas langsam) |
+| `+10%` | Natürlich, angenehm |
+| `+15%` | Empfohlen — professionelles Sprechtempo |
+| `+20%` | Schnell, für dichte Inhalte |
+| `-10%` | Langsamer, für Tutorials |
+
+---
+
+## Eigene Stimme verwenden
+
+Verwenden Sie Ihre eigene Stimme oder klonen Sie die Stimme eines beliebigen Sprechers. Zwei Optionen:
+
+### Option A — ElevenLabs (einfachste, Cloud)
+
+```bash
+pip install elevenlabs
+```
+
+```python
+# Einmalig ausführen: Stimme klonen
+from elevenlabs.client import ElevenLabs
+client = ElevenLabs(api_key="YOUR_KEY")   # Kostenloser Schlüssel auf elevenlabs.io
+voice = client.clone(name="my-voice", files=["my_recording.mp3"])
+print("voice_id:", voice.voice_id)        # Diese ID speichern
+```
+
+```bash
+# Geklonte Stimme verwenden
+python3 steps/synthesize.py \
+  --transcript work/transcript_de.json \
+  --out-dir    work/tts/ \
+  --provider   elevenlabs \
+  --elevenlabs-voice-id  <voice_id> \
+  --elevenlabs-api-key   $ELEVENLABS_API_KEY \
+  --elevenlabs-model     eleven_multilingual_v2
+```
+
+**Aufnahmetipps:** Ruhiger Raum, 1–3 Min., deutliche Aussprache, keine Hintergrundmusik.
+
+### Option B — CosyVoice (beste Wahl für Chinesisch, Open Source)
+
+Klont eine Stimme aus nur **3–30 Sekunden** Referenzaudio.
+
+```bash
+pip install modelscope   # Kein GPU nötig via API
+```
+
+```bash
+python3 steps/synthesize.py \
+  --transcript work/transcript_zh.json \
+  --out-dir    work/tts/ \
+  --provider   cosyvoice \
+  --ref-audio  my_recording.mp3 \
+  --ref-text   "Was in der Aufnahme gesagt wurde."
+```
+
+Beide Optionen erzeugen dieselben `seg_NNNN.mp3`-Dateien — `assemble.py` und `mux.py` bleiben unverändert.
+
 ---
 
 ## Verwendung in Claude Code
