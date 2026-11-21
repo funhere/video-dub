@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" font-family="Hiragino Kaku Gothic Pro, Helvetica, Arial, sans-serif">
+  <rect width="1280" height="720" fill="#ffffff"/>
+  <text x="640" y="52" font-size="30" fill="#161616" text-anchor="middle" font-weight="bold">セグメント単位の時間合わせ (ずれが累積しない仕組み)</text>
+
+  <!-- Case A -->
+  <rect x="40" y="90" width="1200" height="270" rx="12" fill="#f4f4f4"/>
+  <text x="62" y="124" font-size="21" fill="#198038" font-weight="bold">CASE A  日本語音声が枠に収まる (TTS ≤ window)</text>
+
+  <text x="62" y="170" font-size="16" fill="#393939">映像</text>
+  <rect x="160" y="150" width="700" height="34" rx="4" fill="#0f62fe"/>
+  <text x="510" y="173" font-size="15" fill="#ffffff" text-anchor="middle">元の映像 (window)</text>
+
+  <text x="62" y="236" font-size="16" fill="#393939">音声</text>
+  <rect x="160" y="216" width="520" height="34" rx="4" fill="#198038"/>
+  <text x="420" y="239" font-size="15" fill="#ffffff" text-anchor="middle">日本語 TTS</text>
+  <rect x="680" y="216" width="180" height="34" rx="4" fill="#ffffff" stroke="#8d8d8d" stroke-dasharray="6 4"/>
+  <text x="770" y="239" font-size="15" fill="#6f6f6f" text-anchor="middle">無音で埋める</text>
+
+  <text x="890" y="170" font-size="17" fill="#161616" font-weight="bold">結果</text>
+  <text x="890" y="198" font-size="15" fill="#393939">映像はそのまま、</text>
+  <text x="890" y="222" font-size="15" fill="#393939">余った時間は無音パディング</text>
+  <text x="890" y="262" font-size="14" fill="#6f6f6f">閾値 0.04 秒未満の超過も無音扱い</text>
+
+  <!-- Case B -->
+  <rect x="40" y="390" width="1200" height="290" rx="12" fill="#fff8f0"/>
+  <text x="62" y="424" font-size="21" fill="#ba4e00" font-weight="bold">CASE B  日本語音声が枠を超える (TTS &gt; window)</text>
+
+  <text x="62" y="472" font-size="16" fill="#393939">映像</text>
+  <rect x="160" y="452" width="520" height="34" rx="4" fill="#0f62fe"/>
+  <text x="420" y="475" font-size="15" fill="#ffffff" text-anchor="middle">元の映像 (window)</text>
+  <rect x="680" y="452" width="180" height="34" rx="4" fill="#78a9ff"/>
+  <text x="770" y="475" font-size="15" fill="#161616" text-anchor="middle">最終フレームを静止</text>
+
+  <text x="62" y="538" font-size="16" fill="#393939">音声</text>
+  <rect x="160" y="518" width="700" height="34" rx="4" fill="#198038"/>
+  <text x="510" y="541" font-size="15" fill="#ffffff" text-anchor="middle">日本語 TTS (最後まで再生)</text>
+
+  <line x1="680" y1="440" x2="680" y2="566" stroke="#ba4e00" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="684" y="590" font-size="14" fill="#ba4e00">window の終端</text>
+
+  <text x="890" y="472" font-size="17" fill="#161616" font-weight="bold">結果</text>
+  <text x="890" y="500" font-size="15" fill="#393939">超過分 (overrun) だけ映像を</text>
+  <text x="890" y="524" font-size="15" fill="#393939">ffmpeg tpad で静止して延長</text>
+  <text x="890" y="564" font-size="14" fill="#6f6f6f">音声は途切れず、次の枠へずれも波及しない</text>
+
+  <text x="640" y="706" font-size="16" fill="#6f6f6f" text-anchor="middle">window = 次セグメントの開始 − 現セグメントの開始   /   出力長 = Σ max(window, TTS 長)</text>
+</svg>

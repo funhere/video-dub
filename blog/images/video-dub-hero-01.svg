@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="670" viewBox="0 0 1280 670" font-family="Hiragino Kaku Gothic Pro, Helvetica, Arial, sans-serif">
+  <rect width="1280" height="670" fill="#ffffff"/>
+  <rect x="0" y="0" width="1280" height="10" fill="#0f62fe"/>
+  <text x="70" y="100" font-size="26" fill="#0f62fe" font-weight="bold" letter-spacing="2">IBM BOB SKILL</text>
+  <text x="70" y="170" font-size="62" fill="#161616" font-weight="bold">video-dub</text>
+  <text x="70" y="225" font-size="30" fill="#393939">動画を、自然な日本語ナレーションと字幕付きへ。</text>
+  <text x="70" y="268" font-size="22" fill="#6f6f6f">English MP4  →  Japanese dubbed MP4 (audio + subtitles)</text>
+
+  <!-- Input -->
+  <rect x="70" y="340" width="230" height="190" rx="10" fill="#f4f4f4" stroke="#8d8d8d" stroke-width="2"/>
+  <rect x="100" y="372" width="170" height="96" rx="6" fill="#161616"/>
+  <polygon points="168,398 168,442 206,420" fill="#ffffff"/>
+  <text x="185" y="500" font-size="20" fill="#161616" text-anchor="middle" font-weight="bold">source.mp4</text>
+  <text x="185" y="522" font-size="15" fill="#6f6f6f" text-anchor="middle">English narration</text>
+
+  <!-- Arrow -->
+  <line x1="310" y1="435" x2="400" y2="435" stroke="#0f62fe" stroke-width="4"/>
+  <polygon points="400,425 420,435 400,445" fill="#0f62fe"/>
+
+  <!-- Center -->
+  <rect x="430" y="320" width="420" height="230" rx="12" fill="#edf5ff" stroke="#0f62fe" stroke-width="3"/>
+  <text x="640" y="362" font-size="24" fill="#0f62fe" text-anchor="middle" font-weight="bold">video-dub pipeline</text>
+  <g font-size="17" fill="#161616">
+    <rect x="455" y="382" width="170" height="38" rx="6" fill="#ffffff" stroke="#0f62fe"/><text x="540" y="407" text-anchor="middle">1 Transcribe</text>
+    <rect x="655" y="382" width="170" height="38" rx="6" fill="#ffffff" stroke="#0f62fe"/><text x="740" y="407" text-anchor="middle">2 Translate</text>
+    <rect x="455" y="432" width="170" height="38" rx="6" fill="#ffffff" stroke="#0f62fe"/><text x="540" y="457" text-anchor="middle">3 Synthesize</text>
+    <rect x="655" y="432" width="170" height="38" rx="6" fill="#ffffff" stroke="#0f62fe"/><text x="740" y="457" text-anchor="middle">4 Assemble</text>
+    <rect x="555" y="482" width="170" height="38" rx="6" fill="#ffffff" stroke="#0f62fe"/><text x="640" y="507" text-anchor="middle">5 Mux</text>
+  </g>
+
+  <!-- Arrow -->
+  <line x1="860" y1="435" x2="950" y2="435" stroke="#0f62fe" stroke-width="4"/>
+  <polygon points="950,425 970,435 950,445" fill="#0f62fe"/>
+
+  <!-- Output -->
+  <rect x="980" y="340" width="230" height="190" rx="10" fill="#defbe6" stroke="#198038" stroke-width="2"/>
+  <rect x="1010" y="372" width="170" height="96" rx="6" fill="#161616"/>
+  <polygon points="1078,398 1078,442 1116,420" fill="#ffffff"/>
+  <rect x="1030" y="448" width="130" height="14" rx="3" fill="#ffffff" opacity="0.9"/>
+  <text x="1095" y="500" font-size="20" fill="#161616" text-anchor="middle" font-weight="bold">source_ja.mp4</text>
+  <text x="1095" y="522" font-size="15" fill="#198038" text-anchor="middle">日本語音声 + 字幕</text>
+
+  <text x="70" y="620" font-size="18" fill="#6f6f6f">faster-whisper  |  Agent-native translation  |  edge-tts  |  ffmpeg  |  API key: not required</text>
+</svg>

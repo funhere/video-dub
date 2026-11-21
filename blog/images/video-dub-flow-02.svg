@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="760" viewBox="0 0 1280 760" font-family="Hiragino Kaku Gothic Pro, Helvetica, Arial, sans-serif">
+  <rect width="1280" height="760" fill="#ffffff"/>
+  <text x="640" y="52" font-size="30" fill="#161616" text-anchor="middle" font-weight="bold">2 フェーズ実行フロー</text>
+
+  <!-- Phase 1 band -->
+  <rect x="40" y="90" width="1200" height="250" rx="12" fill="#f4f4f4"/>
+  <text x="62" y="124" font-size="20" fill="#0f62fe" font-weight="bold">PHASE 1  文字起こし → 翻訳タスクの出力</text>
+
+  <rect x="70" y="160" width="230" height="130" rx="8" fill="#ffffff" stroke="#0f62fe" stroke-width="2"/>
+  <text x="185" y="198" font-size="20" fill="#161616" text-anchor="middle" font-weight="bold">Step 1  Transcribe</text>
+  <text x="185" y="228" font-size="15" fill="#393939" text-anchor="middle">faster-whisper (CPU / int8)</text>
+  <text x="185" y="252" font-size="15" fill="#393939" text-anchor="middle">VAD で無音を除去</text>
+  <text x="185" y="276" font-size="14" fill="#6f6f6f" text-anchor="middle">→ transcript_en.json</text>
+
+  <line x1="300" y1="225" x2="360" y2="225" stroke="#0f62fe" stroke-width="3"/>
+  <polygon points="360,216 378,225 360,234" fill="#0f62fe"/>
+
+  <rect x="380" y="160" width="270" height="130" rx="8" fill="#ffffff" stroke="#0f62fe" stroke-width="2"/>
+  <text x="515" y="198" font-size="20" fill="#161616" text-anchor="middle" font-weight="bold">Step 2  Translate (task)</text>
+  <text x="515" y="228" font-size="15" fill="#393939" text-anchor="middle">全セグメントと翻訳指示を</text>
+  <text x="515" y="252" font-size="15" fill="#393939" text-anchor="middle">ターミナルへ表示して一時停止</text>
+
+  <line x1="650" y1="225" x2="710" y2="225" stroke="#0f62fe" stroke-width="3"/>
+  <polygon points="710,216 728,225 710,234" fill="#0f62fe"/>
+
+  <rect x="730" y="150" width="480" height="150" rx="8" fill="#fff1e6" stroke="#ba4e00" stroke-width="3"/>
+  <text x="970" y="188" font-size="20" fill="#ba4e00" text-anchor="middle" font-weight="bold">IBM Bob (Agent) が翻訳</text>
+  <text x="970" y="218" font-size="15" fill="#393939" text-anchor="middle">ビジネス日本語 (です・ます体) に翻訳し</text>
+  <text x="970" y="242" font-size="15" fill="#393939" text-anchor="middle">transcript_ja.json を書き込む</text>
+  <text x="970" y="272" font-size="14" fill="#6f6f6f" text-anchor="middle">API キー不要 / 人手でレビュー・修正も可能</text>
+
+  <!-- Down arrow -->
+  <line x1="970" y1="300" x2="970" y2="380" stroke="#0f62fe" stroke-width="3" stroke-dasharray="8 6"/>
+  <polygon points="961,380 970,398 979,380" fill="#0f62fe"/>
+  <text x="990" y="352" font-size="15" fill="#6f6f6f">--translated で再開</text>
+
+  <!-- Phase 2 band -->
+  <rect x="40" y="410" width="1200" height="300" rx="12" fill="#edf5ff"/>
+  <text x="62" y="444" font-size="20" fill="#0f62fe" font-weight="bold">PHASE 2  音声合成 → 組み立て → 出力</text>
+
+  <rect x="70" y="480" width="250" height="150" rx="8" fill="#ffffff" stroke="#0f62fe" stroke-width="2"/>
+  <text x="195" y="518" font-size="20" fill="#161616" text-anchor="middle" font-weight="bold">Step 3  Synthesize</text>
+  <text x="195" y="548" font-size="15" fill="#393939" text-anchor="middle">edge-tts (Neural voice)</text>
+  <text x="195" y="572" font-size="15" fill="#393939" text-anchor="middle">セグメントごとに MP3 生成</text>
+  <text x="195" y="596" font-size="14" fill="#6f6f6f" text-anchor="middle">失敗時は自動リトライ</text>
+
+  <line x1="320" y1="555" x2="380" y2="555" stroke="#0f62fe" stroke-width="3"/>
+  <polygon points="380,546 398,555 380,564" fill="#0f62fe"/>
+
+  <rect x="400" y="480" width="270" height="150" rx="8" fill="#ffffff" stroke="#0f62fe" stroke-width="2"/>
+  <text x="535" y="518" font-size="20" fill="#161616" text-anchor="middle" font-weight="bold">Step 4  Assemble</text>
+  <text x="535" y="548" font-size="15" fill="#393939" text-anchor="middle">フリーズフレーム or 無音で</text>
+  <text x="535" y="572" font-size="15" fill="#393939" text-anchor="middle">セグメントごとに時間を調整</text>
+  <text x="535" y="596" font-size="14" fill="#6f6f6f" text-anchor="middle">→ video / audio / SRT</text>
+
+  <line x1="670" y1="555" x2="730" y2="555" stroke="#0f62fe" stroke-width="3"/>
+  <polygon points="730,546 748,555 730,564" fill="#0f62fe"/>
+
+  <rect x="750" y="480" width="210" height="150" rx="8" fill="#ffffff" stroke="#0f62fe" stroke-width="2"/>
+  <text x="855" y="518" font-size="20" fill="#161616" text-anchor="middle" font-weight="bold">Step 5  Mux</text>
+  <text x="855" y="548" font-size="15" fill="#393939" text-anchor="middle">ffmpeg で字幕を合成</text>
+  <text x="855" y="572" font-size="15" fill="#393939" text-anchor="middle">hard / soft / both</text>
+
+  <line x1="960" y1="555" x2="1020" y2="555" stroke="#198038" stroke-width="3"/>
+  <polygon points="1020,546 1038,555 1020,564" fill="#198038"/>
+
+  <rect x="1040" y="500" width="170" height="110" rx="8" fill="#defbe6" stroke="#198038" stroke-width="2"/>
+  <text x="1125" y="545" font-size="19" fill="#198038" text-anchor="middle" font-weight="bold">source_ja.mp4</text>
+  <text x="1125" y="573" font-size="14" fill="#393939" text-anchor="middle">H.264 + AAC</text>
+</svg>

@@ -85,10 +85,60 @@ def _parse_srt(srt: Path) -> list[tuple[float, float, str]]:
 def _escape_drawtext(text: str) -> str:
     """Escape text for ffmpeg drawtext filter value."""
     text = text.replace("\\", "\\\\")
-    text = text.replace("'",  "’")   # curly apostrophe avoids shell quoting issues
+    text = text.replace("’",  "’")   # curly apostrophe avoids shell quoting issues
     text = text.replace(":",  "\\:")
     text = text.replace("%",  "\\%")
     return text
+
+
+_CJK_PUNCT = set("，。！？；：、…")
+_CJK_RANGE = range(0x4E00, 0xA000)  # CJK Unified Ideographs + extensions approx
+
+
+def _char_width(c: str) -> float:
+    """Estimate character display width in CJK font units (CJK=1.0, ASCII≈0.5)."""
+    cp = ord(c)
+    if cp > 0x2E7F:  # CJK, fullwidth, etc.
+        return 1.0
+    return 0.5
+
+
+def _wrap_text(text: str, max_width: float) -> str:
+    """
+    Wrap text so each visual line fits within max_width CJK units.
+    Prefers breaking after Chinese punctuation; otherwise breaks at max_width.
+    """
+    if not text.strip():
+        return text
+
+    lines: list[str] = []
+    current: list[str] = []
+    current_w = 0.0
+    last_punct_idx: int | None = None  # index in `current` after a break-eligible punct
+
+    for ch in text:
+        w = _char_width(ch)
+        if current_w + w > max_width and current:
+            if last_punct_idx is not None:
+                # break after last punctuation
+                lines.append("".join(current[: last_punct_idx + 1]))
+                current = current[last_punct_idx + 1 :]
+                current_w = sum(_char_width(c) for c in current)
+                last_punct_idx = None
+            else:
+                lines.append("".join(current))
+                current = []
+                current_w = 0.0
+                last_punct_idx = None
+        current.append(ch)
+        current_w += w
+        if ch in _CJK_PUNCT:
+            last_punct_idx = len(current) - 1
+
+    if current:
+        lines.append("".join(current))
+
+    return "\n".join(lines)
 
 
 def _build_drawtext_filter(
@@ -96,6 +146,7 @@ def _build_drawtext_filter(
     font_file: str,
     font_size: int,
     tmp_dir: Path,
+    wrap_chars: float = 0,
 ) -> str:
     """
     Build a chained drawtext filter string.
@@ -104,6 +155,8 @@ def _build_drawtext_filter(
     parts: list[str] = []
     for idx, (start, end, text) in enumerate(cues):
         # Write text to temp file — sidesteps all escaping problems
+        if wrap_chars > 0:
+            text = _wrap_text(text, wrap_chars)
         txt_file = tmp_dir / f"sub_{idx:04d}.txt"
         txt_file.write_text(text, encoding="utf-8")
 
@@ -138,8 +191,9 @@ def _burn_subtitles(
     out: Path,
     tmp_dir: Path,
     crf: int,
+    wrap_chars: float = 0,
 ) -> None:
-    vf = _build_drawtext_filter(cues, font_file, font_size, tmp_dir)
+    vf = _build_drawtext_filter(cues, font_file, font_size, tmp_dir, wrap_chars)
     r = subprocess.run(
         ["ffmpeg", "-y", "-i", str(video),
          "-vf", vf,
@@ -171,6 +225,7 @@ def mux(
     font_file: str | None,
     font_size: int,
     crf: int,
+    wrap_chars: float = 0,
 ) -> None:
     iso_lang = _LANG_MAP.get(lang, lang)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -178,18 +233,23 @@ def mux(
     tmp_dir.mkdir(exist_ok=True)
 
     try:
-        # ── Resolve font ──────────────────────────────────────────────────────
-        if subtitle_mode != "soft":
+        # ── Resolve font (not needed for none/soft) ───────────────────────────
+        if subtitle_mode in ("hard", "both"):
             resolved_font = font_file or _find_font(lang)
             print(f"[mux] font: {resolved_font}")
             cues = _parse_srt(srt)
             print(f"[mux] {len(cues)} subtitle cues")
+        elif subtitle_mode == "soft":
+            cues = _parse_srt(srt)
+            print(f"[mux] {len(cues)} subtitle cues (soft track only)")
 
         # ── Step A: burn subtitles into video (hard / both) ──────────────────
         if subtitle_mode in ("hard", "both"):
             print(f"[mux] Burning subtitles ({subtitle_mode} mode)…")
+            if wrap_chars > 0:
+                print(f"[mux] Auto-wrap: max {wrap_chars:.0f} CJK units per line")
             burned_video = tmp_dir / "video_burned.mp4"
-            _burn_subtitles(video, cues, resolved_font, font_size, burned_video, tmp_dir, crf)
+            _burn_subtitles(video, cues, resolved_font, font_size, burned_video, tmp_dir, crf, wrap_chars)
             video_for_mux = burned_video
         else:
             video_for_mux = video
@@ -245,10 +305,13 @@ Subtitle modes:
     p.add_argument("--lang",           default="ja")
     p.add_argument("--title",          default=None)
     p.add_argument("--subtitle-mode",  default="hard",
-                   choices=["hard", "soft", "both"])
+                   choices=["hard", "soft", "both", "none"])
     p.add_argument("--font-file",      default=None,
                    help="Override font file path (auto-detected per language if omitted)")
     p.add_argument("--font-size",      type=int, default=28)
+    p.add_argument("--wrap-chars",     type=float, default=0,
+                   help="Max CJK chars per subtitle line (0=no wrap). "
+                        "CJK=1.0 unit, ASCII=0.5 unit. Default 0 (disabled).")
     p.add_argument("--crf",            type=int, default=20,
                    help="x264 CRF for subtitle burn re-encode (default 20)")
     args = p.parse_args()
@@ -267,13 +330,14 @@ Subtitle modes:
 
     mux(args.video, args.audio, args.srt, args.out,
         args.lang, title, args.subtitle_mode,
-        args.font_file, args.font_size, args.crf)
+        args.font_file, args.font_size, args.crf, args.wrap_chars)
 
     size_mb = args.out.stat().st_size / 1024 ** 2
     dur = _probe_dur(args.out)
     mode_desc = {"hard": "burned-in (always visible)",
                  "soft": "soft track (player toggle)",
-                 "both": "burned-in + soft track"}[args.subtitle_mode]
+                 "both": "burned-in + soft track",
+                 "none": "no subtitles"}[args.subtitle_mode]
     print(f"\n[mux] ✅ {args.out}")
     print(f"      Duration: {dur:.1f}s  Size: {size_mb:.1f} MB")
     print(f"      Subtitles: {mode_desc}")
